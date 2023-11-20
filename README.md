@@ -1,5 +1,4 @@
-![](https://user-images.githubusercontent.com/327048/283263147-69ba475a-9e32-44dc-a139-e2cfe45e5930.JPG)
-
+![L1060359](https://github.com/wkjagt/apple2_pendulum_clock/assets/327048/134441f7-af43-4853-a183-bfcb9c88860e)
 
 I was watching [Dave Plummer's video]([url](https://www.youtube.com/watch?v=CfbciNZvg0o)) in which he made a clock in 6502 assembly for his Commodore PET. It looked like a fun thing to do on my Apple 2 clone. Plus, it would look nice on my amber CRT. However, Dave has a real-time clock in his Commodore, which I don't have one in my Apple. A real-time clock, the way I understand it, does two things:
 
