@@ -40,6 +40,7 @@ Most of my code is doing the same thing as Dave's (the initial inspiration), so 
 $03fc/d is the parameter of a jump instruction that the NMI vector points to. I am using the NMI vector by the way, and not the IRQ vector, because the 6522 I chose to use is connected to it. The other 6522 is connected to IRQ. For my sue case it doesn't really matter. I replace that address with address of my own nmi handler, so that that gets called once for each pendulum swing. In that handler, I increment a number in the zero page. This counter counts pendulum swings. I had initially hoped that each pendulum swing was exactly one second, but unfortunately it isn't. One minute is actually 96 pendulum swings. (In fact, it's not even exactly 96, but 96 and a bit, so the clock (the one on the Apple, not the physical one) drifts a bit over time). Another thing the handler does is blink the hours/minute separator, to make the clock look more alive.
 
 https://github.com/wkjagt/apple2_pendulum_clock/assets/327048/968e700a-afae-4624-afd6-d8ac55b7afeb
+
 (Don't follow my channel please, I'm not a YouTuber)
 
 
