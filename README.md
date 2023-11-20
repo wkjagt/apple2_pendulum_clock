@@ -1,6 +1,6 @@
 ![Clock](https://github.com/wkjagt/apple2_pendulum_clock/assets/327048/134441f7-af43-4853-a183-bfcb9c88860e)
 
-I was watching [Dave Plummer's video]([url](https://www.youtube.com/watch?v=CfbciNZvg0o)) in which he made a clock in 6502 assembly for his Commodore PET. It looked like a fun thing to do on my Apple 2 clone. Plus, it would look nice on my amber CRT. However, Dave has a real-time clock in his Commodore, which I don't have one in my Apple. A real-time clock, the way I understand it, does two things:
+I was watching [Dave Plummer's video](https://www.youtube.com/watch?v=CfbciNZvg0o) in which he made a clock in 6502 assembly for his Commodore PET. It looked like a fun thing to do on my Apple 2 clone. Plus, it would look nice on my amber CRT. However, Dave has a real-time clock in his Commodore, which I don't have one in my Apple. A real-time clock, the way I understand it, does two things:
 
 - It has an oscillator that oscillates at a convenient power of two times per second, often 32,768Hz (Steve Mould has [a really nice video](https://www.youtube.com/watch?v=_2By2ane2I4) explaining why that power of two in particular). This provides you with the "how fast does time go" part.
 - It has a chip that actually keeps time based on this frequency, and gives the computer access to register that chops the time information in values that humans understand (hours, minutes etc). Typically these cards have a battery that keeps the oscillator and chip powered up so you don't have to set the time each time you turn the computer on.
