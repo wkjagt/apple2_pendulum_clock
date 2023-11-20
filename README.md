@@ -41,5 +41,7 @@ Here's a video showing the clock working (Don't follow my channel please, I'm no
 
 https://github.com/wkjagt/apple2_pendulum_clock/assets/327048/968e700a-afae-4624-afd6-d8ac55b7afeb
 
+(Turn on the sound to hear the clock)
+
 
 It's really nice to see the clock working on the amber CRT screen, and hear the ticks of the clock in sync with the blinking hours/minutes separator. If you pay close attention, you'll see the blinking of the LED on the sensor is when the pendulum is in the center of its movement, but the ticks are at the extremities. And yet the blinking happens at the same time as the clocks. I added a delay in my NMI handler for this, because it looked better when the ticks and the blinking happened at the same time. And since I clear the interrupt on the 6522 at the end of the NMI handler, the delay also serves as a kind of debouncing if for whatever reason the pendulum passed in front of the sensor in a way that it registers twice (for example when the sensor only barely sees it, and it's right on the limit of  A funny (but totally logical) detail to see happen is that the clock on the computer stops when I stop the pendulum.
