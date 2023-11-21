@@ -1,5 +1,7 @@
 ![Clock](https://github.com/wkjagt/apple2_pendulum_clock/assets/327048/134441f7-af43-4853-a183-bfcb9c88860e)
 
+_TL;DR I used a pendulum clock and a sensor to drive a clock program for the Apple II_
+
 # Making a clock for my Apple 2 clone
 
 I was watching [Dave Plummer's video](https://www.youtube.com/watch?v=CfbciNZvg0o) in which he made a clock in 6502 assembly for his Commodore PET. It looked like a fun thing to do on my Apple 2 Plus clone (I'll sometimes refer to it as "the Apple", so I don't have to say "Apple 2 Plus clone" every time). Plus, it would look nice on my amber CRT. However, Dave has a real-time clock in his Commodore, which I don't have one in my Apple. A real-time clock, the way I understand it, does two things:
