@@ -188,6 +188,7 @@ inc_minutes:    lda     minutes
 inc_hours:      lda     hours
                 cmp     #$23        ; BCD
                 beq     .rollover
+                sed
                 clc
                 lda     #1
                 adc     hours
