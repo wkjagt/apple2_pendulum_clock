@@ -1,6 +1,6 @@
 ![Clock](https://github.com/wkjagt/apple2_pendulum_clock/assets/327048/134441f7-af43-4853-a183-bfcb9c88860e)
 
-_TL;DR I used a pendulum clock and a sensor to drive a clock program for the Apple II_
+_TL;DR I made a clock for the Apple II, and used a pendulum clock and a sensor to drive it_
 
 # Making a clock for my Apple 2 clone
 
