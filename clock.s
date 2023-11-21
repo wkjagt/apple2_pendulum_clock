@@ -1,3 +1,5 @@
+; to assemble: vasm6502_oldstyle -Fbin -dotdir clock.s -o clock.out
+
     .org    $6000
 
 ; kernel routines
