@@ -52,11 +52,10 @@ To draw the clock, I first split the value of the hours in a low and high nibble
 
 All this happens in interrupts. What doesn't happen in interrupts (I guess in what we can call the main loop), is just a simple check for keyboard presses. The only keys that do something useful are `H` and `M`, which increment the hours and minutes respectively, to adjust the time. Any other key exits the program.
 
-Here's a video showing the clock working (Don't follow my channel please, I'm not a YouTuber)
+Here's a video showing the clock working. Turn on the sound to hear the clock.
 
 https://github.com/wkjagt/apple2_pendulum_clock/assets/327048/968e700a-afae-4624-afd6-d8ac55b7afeb
 
-(Turn on the sound to hear the clock)
 
 ## A bit about the workflow
 
