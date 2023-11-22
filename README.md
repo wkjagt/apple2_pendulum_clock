@@ -11,11 +11,11 @@ I was watching [Dave Plummer's video](https://www.youtube.com/watch?v=CfbciNZvg0
 
 I started thinking about how I could do a similar clock for my Apple 2 without such a card. I didn't really care about it keeping time with the computer turned off because I won't rely on this to know what time it is. I mostly just want to see it work. But you can't make a clock program without the computer knowing how long a minute is. The simplest solution would be to have a really really long loop that does nothing for exactly one minute. You'd have to count the cycles, but I thought that was a boring way to go about it. I liked the idea much more of something providing me with well timed interrupts, the way a real time clock does. I just needed to find something that gave me a signal at predictable intervals that could serve as the base frequency for a clock.
 
-## The pendulum clock
+### The pendulum clock
 
 While looking for ideas, I realized the solution was right in front of me: the pendulum clock that belonged to my grandparents, hanging on the wall right behind my Apple. The pendulum would make an amazing oscillator, because technically that is exactly what it is. And this particular one has been instrumental in telling the time for decades, so I thought it really made sense to make use of it. However, since this is my grand parents' clock, the one I grew up knowing, and hearing tick as a kid, I really didn't want to modify it in any way.
 
-## The inductive proximity sensor
+### The inductive proximity sensor
 
 My first thought was to convert the motion of the pendulum into electrical signals using something like an ultasonic rangefinder. But then I discovered something that's called an inductive proximity sensor. It's like a miniature metal detector with a very small range. Apparently it's best at detecting iron. I didn't know what the pendulum of my clock was made of, it's kind of copper coloured, but a magnet sticks to it, so there must be some iron in it. I ordered a couple of these sensors on AliExpress, hoping it could detect whatever the pendulum was made of.
 
@@ -26,7 +26,7 @@ The first thing I did when the sensors arrived, was hook them up to a 9 volt bat
 
 I had no idea what kind of signal to expect from this sensor. If, for example, it would be an analog or digital signal. In other words, if it would tell me the strength of the field or something expressed as a voltage, or just that it either saw metal close by or it didn't. And if it was digital, how clean it would be. It turned out to work perfectly with the 9 volt battery. The signal was a very clean and square looking: high when no metal, and then it would drop to 0 volt immediately when I held something like a screwdriver close to it. The fact that it worked with 9 volt gave me hope that it might also work with 5 volt, which would make this project so much simpler, because I could just feed it 5 volt from somewhere on the motherboard, and it would give me a 5 volt signal back that I could use to generate interrupts. When testing this out with a couple of wires connected to some of the pins on an expansion port of the Apple clone, it turned out that 5 volt still worked, but the sensor seems a lot less sensitive, and would only detect metal object when holding them at a couple of millimeters from the sensor's surface. I figured this would be fine. The pendulum has a pretty steady swing, and always swings in the same plane. It would just swing really close to the sensor.
 
-## Getting interrupts
+### Getting interrupts
 
 When thinking a bit more about generating interrupts, I realized that maybe this wouldn't be as straightforward as I initially assumed. The IRQ line on the 6502 is level triggered, meaning the CPU will keep running the interrupt handler as long as the interrupt line is low. Normally you'd use an additional chip that interrupts the 6502 and releases the interrupt when the CPU acknowledges the interrupt (something like a 6522 VIA chip). Connecting the sensor directly to the IRQ line would mean the interrupt handler would be called again as soon as it returned, because the 6502 would still see the IRQ line low, and this for the whole duration that the sensor sees the pendulum passing in front of it. Even though the sensor only sees the pendulum for a fraction of a second, that still translates to hundreds of thousands of cycles, even with the 6502 running at only 1Mhz.
 
@@ -34,7 +34,7 @@ The NMI line is edge triggered, meaning it's triggered once, when the line goes 
 
 ![Connecting the sensor to the IRQ line](https://github.com/wkjagt/apple2_pendulum_clock/assets/327048/cfa21a5e-d465-4d93-b980-74e3a2d103b3)
 
-## Gating the sensor to not always interrupt
+### Gating the sensor to not always interrupt
 
 The Apple II has a game port, that exposes different kinds of pins. Four of these are what the documentation calls "annunciators". These are simple output pins that can be set to high or low by accessing a specific address. I ended up using one of these annunciator pins, in combination with an OR gate to gate the signal coming from the sensor. When looking at the state of these pins when the computer is first turned on, I saw that annunciator 0 and 1 default to low, and 2 and 3 start out high. This was good news, because I needed one that started out as high, so that it could immediately gate the signal from the sensor as soon as the computer was turned on. In my clock program I set the annunciator low, so the signal from the sensor passes through, and can be used as interrupts.
 
@@ -42,14 +42,14 @@ However, I didn't want to connect the output directly to the IRQ line on the CPU
 
 ![L1060325](https://github.com/wkjagt/apple2_pendulum_clock/assets/327048/9a037e0a-ff2b-4102-898e-7c2c5f93cdec)
 
-## A couple of by the ways:
+### A couple of by the ways:
 
 - The Apple 2 has a really elegant way of addressing expansion cards and other IO. The annunciator I am using to gate the sensor signal is set low by addressing `$C05C`. One of my favorite illustrations in Jim Sather's [Understanding The Apple II]([url](https://archive.org/details/understanding_the_apple_ii/)) shows why this it's that address::
 <img width="602" alt="image" src="https://user-images.githubusercontent.com/327048/283250371-89a2439c-e698-4c44-98f1-866948041e4b.png">
 
 - Apple ][ clone motherboards are cool because they have a couple of small areas of perf board (see photo above), as if they were intended to be modified/expanded. I used this to solder the OR gate and buffer ICs.
 
-## The code
+### The code
 
 The source code is the same repo as this readme, so you can look at it, but in broad strokes is works as follows. It starts by modifying `$03FC` and `$03FD` in RAM. This is the parameter of a jump instruction that the IRQ vector indirectly points to. I replace the address there with the address of my own interrupt handler, so that that gets called once for each pendulum swing. In this handler, I increment a counter that counts pendulum swings. I had initially hoped that each pendulum swing was exactly one second, but unfortunately it isn't. One minute is actually 95 pendulum swings. (In fact, it's not even exactly 95, but 95 and a bit, so the clock (the one on the Apple, not the physical one) drifts a bit over time). Another thing the handler does, is blink the hours/minute separator, to make the clock look more alive. When the tick counter reaches 95, it increments a value in memory where I store the minutes part of the current time. If that rolls over, I also increment the hours. Both these values are stored as BCD (binary coded decimal, in short: `17` for example is stored as `$17`), because that makes it easier to draw the clock. And the 6502 has a decimal mode that you can turn on and off. A small inconvenience is that you can't use `inc` and `dec`, because they don't respect the decimal mode (ie incrementing `$09` results in `$0a`, which is not a valid value in BCD).
 
@@ -62,7 +62,7 @@ Here's a video showing the clock working. Turn on the sound to hear the clock.
 https://github.com/wkjagt/apple2_pendulum_clock/assets/327048/968e700a-afae-4624-afd6-d8ac55b7afeb
 
 
-## A bit about the workflow
+### A bit about my workflow
 
 I'm a pretty nostalgic person, and I when I first started programming on this computer, I was using Merlin, a native assembler for the Apple ][, for the authentic experience. At first I was pretty opinionated and purist about using this instead of more modern approaches. It's a really slow process however, and the nostalgia wore of at some point, and I since switched to a more convenient approach. This combines writing code on my laptop, and running it on the actual hardware. I wrote a loader on the Apple (using Merlin), inspired by [this video](https://www.youtube.com/watch?v=AHYNxpqKqwo) where Ben Eater implements the RS-232 protocol in software. I use a similar approach. The game port in the Apple II, in addition to the annunciator pins mentioned above, also has three switch pins (for switches on a joystick for example). I use one of those pins as an Rx pin. I read that pin in a precisely timed loop, so that each read of the pin happens right in the middle of the 0 or 1 coming in over the RS-232 protocol. I use an FTDI board, which I connect to a USB port on my laptop, and on the other side the Tx pin to the switch pin of the game port on the Apple.
 
