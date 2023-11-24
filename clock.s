@@ -3,35 +3,42 @@
     .org    $6000
 
 ; kernel routines
-IOSAVE          = $FF4A
-IOREST          = $FF3F
+IOSAVE          = $FF4A ; save the A, X, and Y registers
+IOREST          = $FF3F ; restore the A, X, and Y registers
 
 ; kernal addresses
-KYBD            = $C000
-KBSTROBE        = $C010
+KYBD            = $C000 ; keyboard
+KBSTROBE        = $C010 ; keyboard strobe to clear the keyboard register
 IRQ_VECTOR_L    = $03FE
 IRQ_VECTOR_H    = $03FF
-INT_ENABLE      = $C05C  ; sets annuciater 2 low
+INT_ENABLE      = $C05C ; sets annuciater 2 low
 
 ; constants
-LEFT_ARROW      = $88
-RIGHT_ARROW     = $95
-CLOCK_X_OFFSET  = 1
-CLOCK_Y_OFFSET  = 8
-TICKS_PER_MIN   = 95
+LEFT_ARROW      = $88   ; keyboard left arrow
+RIGHT_ARROW     = $95   ; keyboard right arrow
+CLOCK_X_OFFSET  = 1     ; clock offset on x-axis
+CLOCK_Y_OFFSET  = 8     ; clock offset on y-axis
+TICKS_PER_MIN   = 95    ; ticks per minute from pendulum clock
 
 ; zero page addresses
-tmp             = $1D ; 2 bytes
-row_ptr         = $1F ; 2 bytes
-char_x          = $21 ; 1 byte
-char_y          = $22 ; 1 byte
-storx           = $23 ; 1 byte
-story           = $24 ; 1 byte
-ticks           = $25 ; 1 byte
-blink           = $26 ; 1 byte
-hours           = $27 ; 1 byte
-minutes         = $28 ; 1 byte
+tmp             = $1D   ; general purpose for storing temporary address (2 bytes)
+row_ptr         = $1F   ; pointer to a row address in screen memory (2 bytes)
+char_x          = $21   ; x position of the number to draw (1 byte)
+char_y          = $22   ; y position of the number to draw (1 byte)
+stor_x          = $23   ; (1 byte)
+stor_y          = $24   ; (1 byte)
+ticks           = $25   ; counter for pendulum clock ticks (1 byte)
+blink           = $26   ; on/off toggle for hours/minutes separator (1 byte)
+hours           = $27   ; the hours part of the current time (1 byte)
+minutes         = $28   ; the minutes part of the current time (1 byte)
 
+;=======================================================================
+; Convenience macro to add an immediate value to a value in memory
+; args: 1. memory location
+;       2. immediate value
+; Example:
+;       add char_x, 5  ; add 5 to value stored at char_x
+;=======================================================================
                 .macro add
                 clc
                 lda \1
@@ -39,6 +46,19 @@ minutes         = $28 ; 1 byte
                 sta \1
                 .endmacro
 
+                .macro incbcd
+                sed
+                clc
+                lda     #1
+                adc     \1
+                sta     \1
+                cld
+                .endmacro
+
+;=======================================================================
+; Initialize values in RAM
+; initialize blink to %10101010 for easy toggling
+;=======================================================================
                 lda     #0
                 sta     ticks
                 sta     blink
@@ -46,19 +66,26 @@ minutes         = $28 ; 1 byte
                 sta     minutes
                 lda     #$aa
                 sta     blink
-
                 jsr     clear_screen
 
+;=======================================================================
+; Initialize interrupt handler and enable interrupts
+;=======================================================================
                 lda     #<int_handler
                 sta     IRQ_VECTOR_L
                 lda     #>int_handler
                 sta     IRQ_VECTOR_H
                 cli
-
                 bit     INT_ENABLE
                 
                 jsr     draw_clock
 
+;=======================================================================
+; Wait for key press
+; M: increases minutes
+; H: increases hours
+; Any other key exits
+;=======================================================================
 main_loop:      bit     KYBD                ; wait for a key press to adjust time
                 bpl     main_loop
                 lda     KYBD
@@ -74,7 +101,9 @@ main_loop:      bit     KYBD                ; wait for a key press to adjust tim
                 jmp     main_loop
 .exit:          rts                         ; any other key exits
 
-; draw the current time on the screen
+;=======================================================================
+; Draw the clock, showing the current time
+;=======================================================================
 draw_clock:     lda     #CLOCK_X_OFFSET
                 sta     char_x
                 lda     #CLOCK_Y_OFFSET
@@ -82,7 +111,9 @@ draw_clock:     lda     #CLOCK_X_OFFSET
 
                 lda     hours
                 jsr     print_dec
-                add     char_x, 5   ; leave space for separator
+
+                add     char_x, 5           ; leave space for separator
+                
                 lda     minutes
                 jsr     print_dec
                 rts
@@ -169,16 +200,10 @@ inc_time:       jsr     inc_minutes
 ; signaled to the calling routine by setting the carry flag
 ;=======================================================================
 inc_minutes:    lda     minutes
-                cmp     #$59        ; BCD
+                cmp     #$59                ; BCD
                 beq     .rollover
-                sed
-                clc
-                lda     #1
-                adc     minutes
-                sta     minutes
-                cld
-                clc
-                bcc     .done       ; always
+                incbcd  minutes
+                bcc     .done               ; always
 .rollover:      lda     #0
                 sta     minutes
                 sec
@@ -190,13 +215,8 @@ inc_minutes:    lda     minutes
 inc_hours:      lda     hours
                 cmp     #$23        ; BCD
                 beq     .rollover
-                sed
-                clc
-                lda     #1
-                adc     hours
-                sta     hours
-                cld
-                jmp     .done
+                incbcd  hours
+                bcc     .done
 .rollover:      lda     #0
                 sta     hours
 .done:          rts
@@ -224,13 +244,13 @@ print_dec:      pha
 ; Draw a number. The number to draw is in A.
 ; x and y position are in char_x and char_y
 ;=======================================================================
-draw_number:    stx     storx
-                sty     story
+draw_number:    stx     stor_x
+                sty     stor_y
 
                 ; store start address of number bitmap in tmp
-                asl
-                asl
-                asl
+                asl                         ; multiply by 8 because
+                asl                         ; the bitmaps are 8 bytes
+                asl                         ; long
                 clc
                 adc     #<bitmaps
                 sta     tmp
@@ -238,15 +258,18 @@ draw_number:    stx     storx
                 sta     tmp+1
                 bcc     .ahead
                 inc     tmp+1
-
-.ahead:         lda     char_x          ; modify code further down this routine
+                
+                ; loop until y is char_x + 8. Update the cpy instruction
+                ; in the loop below.
+.ahead:         lda     char_x
                 clc
                 adc     #8
-                sta     .endx+1
+                sta     .endx+1             ; store as param to cpy
 
+                ; x increments for each row in the bitmap
+                ; y increments for each bit in a row 
                 ldx     #0
-.row_loop:      ; store start address of screen row in row_ptr
-                txa
+.row_loop:      txa
                 clc
                 adc     char_y
                 asl
@@ -257,22 +280,23 @@ draw_number:    stx     storx
                 sta     row_ptr+1
 
                 txa
-                tay             ; no txy on original 6502
-                lda     (tmp),y     ; load one bitmap byte into A
+                tay                         ; no txy on original 6502
+                lda     (tmp),y             ; load one bitmap byte into A
                 
                 ldy     char_x
-.col_loop:      ; draw one byte (column) of the number
-                rol     a
+
+.col_loop:      rol     a
                 jsr     pixel
                 iny
-.endx:          ; label used as address for self modifying code
-                cpy     #8          ; modified above
+
+.endx:          cpy     #8                  ; modified above
                 bne     .col_loop
                 inx
-                cpx     #7
+                cpx     #8
                 bne     .row_loop
-                ldx     storx
-                ldy     story
+
+                ldx     stor_x
+                ldy     stor_y
                 rts
 
 ;========================================================
@@ -281,9 +305,9 @@ draw_number:    stx     storx
 ; a block, when it's clear, draw a space.
 ;========================================================
 pixel:          pha
-                lda     #" "        ; inverse space (block)
+                lda     #" "                ; inverse space (block)
                 bcs     .ahead
-                ora     #$80        ; space
+                ora     #$80                ; space
 .ahead:         sta     (row_ptr),y
                 pla
                 rts
@@ -291,7 +315,7 @@ pixel:          pha
 ;========================================================
 ; Clear the screen by printing spaces in every position
 ;========================================================
-clear_screen:   ldx     #46 ; 23 x 2
+clear_screen:   ldx     #46                 ; 23 x 2
 .row_loop:      ldy     #39
                 lda     screen_rows,x
                 sta     tmp
